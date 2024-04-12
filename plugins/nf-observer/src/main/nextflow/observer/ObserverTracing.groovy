@@ -28,7 +28,7 @@ import nextflow.trace.TraceObserver
  */
 @Slf4j
 @CompileStatic
-class ObserverPlugin implements TraceObserver {
+class ObserverTracing implements TraceObserver {
 
     @Override
     void onFlowCreate(Session session) {

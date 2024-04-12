@@ -31,7 +31,7 @@ class ObserverFactory implements TraceObserverFactory {
     @Override
     Collection<TraceObserver> create(Session session) {
         final result = new ArrayList()
-        result.add( new ObserverPlugin() )
+        result.add( new ObserverTracing() )
         return result
     }
 }
