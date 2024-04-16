@@ -16,10 +16,18 @@
 
 package nextflow.observer
 
+import java.nio.file.Path
+
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import nextflow.Session
+import nextflow.processor.TaskHandler
 import nextflow.trace.TraceObserver
+import nextflow.trace.TraceRecord
+import nextflow.trace.WorkflowStats
+import nextflow.trace.WorkflowStatsObserver
+import nextflow.util.Duration
+
 
 /**
  * Example workflow events observer
@@ -30,13 +38,59 @@ import nextflow.trace.TraceObserver
 @CompileStatic
 class ObserverTracing implements TraceObserver {
 
+    private Session session
+
+    private long startTimestamp
+
+    private long endTimestamp
+
+    private volatile boolean stopped
+
+    private volatile boolean started
+
     @Override
-    void onFlowCreate(Session session) {
-        log.info "Pipeline is starting! 🚀"
+    void onProcessStart(TaskHandler handler, TraceRecord trace) {
+        log.info "Process started! '${handler.task.name}'"
     }
 
     @Override
-    void onFlowComplete() {
-        log.info "Pipeline complete! 👋"
+    void onProcessComplete(TaskHandler handler, TraceRecord trace) {
+        log.info "I completed a task! It's name is '${handler.task.name}'"
+        // Printing all values
+        log.info "Printing all fields and values in TraceRecord:"
+        for (Map.Entry<String, String> entry : TraceRecord.FIELDS.entrySet()) {
+            String fieldName = entry.getKey();
+            Object value = trace[fieldName]
+            log.info "${fieldName}: ${value}"
+            
+        }
     }
+
+    @Override
+    void onProcessCached(TaskHandler handler, TraceRecord trace) {
+        log.info "I found a task in the cache! It's name is '${handler.task.name}'"
+    }
+    
+    @Override
+    void onFlowError(TaskHandler handler, TraceRecord trace) {
+        log.info "Uh oh, something went wrong..."
+    }
+
+    @Override
+    void onFlowCreate(Session session){
+        log.info "Hi, the Pipeline is starting! 🚀 now by drsantos20"
+        this.started = true
+        this.session = session
+        this.startTimestamp = System.currentTimeMillis()
+        log.info "Pipeline started at '${new Date(startTimestamp)}'"
+    }
+
+    @Override
+    void onFlowComplete(){
+        stopped = true
+        endTimestamp = System.currentTimeMillis()
+        log.info "Pipeline finished at '${new Date(endTimestamp)}'"
+        log.info "Pipeline complete! 👋 bye!"
+    }
+
 }
