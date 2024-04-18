@@ -20,6 +20,7 @@ import java.nio.file.Path
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
+import org.apache.http.HttpResponse
 import nextflow.Session
 import nextflow.processor.TaskHandler
 import nextflow.trace.TraceObserver
@@ -27,6 +28,8 @@ import nextflow.trace.TraceRecord
 import nextflow.trace.WorkflowStats
 import nextflow.trace.WorkflowStatsObserver
 import nextflow.util.Duration
+
+import nextflow.pushgateway.PushgatewayClient
 
 
 /**
@@ -48,6 +51,8 @@ class ObserverTracing implements TraceObserver {
 
     private volatile boolean started
 
+    private PushgatewayClient pushgatewayClient = new PushgatewayClient()
+
     @Override
     void onProcessStart(TaskHandler handler, TraceRecord trace) {
         log.info "Process started! '${handler.task.name}'"
@@ -56,14 +61,19 @@ class ObserverTracing implements TraceObserver {
     @Override
     void onProcessComplete(TaskHandler handler, TraceRecord trace) {
         log.info "I completed a task! It's name is '${handler.task.name}'"
-        // Printing all values
-        log.info "Printing all fields and values in TraceRecord:"
         for (Map.Entry<String, String> entry : TraceRecord.FIELDS.entrySet()) {
-            String fieldName = entry.getKey();
-            Object value = trace[fieldName]
-            log.info "${fieldName}: ${value}"
-            
+        String fieldName = entry.getKey()
+        Object value = trace.get(fieldName)
+
+        if (value instanceof Number) {
+            String stringValue = (Number) value;
+
+            if (stringValue.matches("\\b\\d+\\b")) {
+                log.info "${fieldName}: ${stringValue}"
+                HttpResponse response = pushgatewayClient.postData(fieldName, stringValue);
+            }
         }
+    }
     }
 
     @Override
